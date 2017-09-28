@@ -9,6 +9,7 @@ README_PATH = os.path.join(base, "README.rst")
 install_requires = [
     "pandas",
     "numpy",
+    "statsmodels",
 ]
 
 tests_require = []
