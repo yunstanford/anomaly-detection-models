@@ -10,6 +10,7 @@ install_requires = [
     "pandas",
     "numpy",
     "statsmodels",
+    "matplotlib",
 ]
 
 tests_require = []
