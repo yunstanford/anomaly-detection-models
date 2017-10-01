@@ -24,7 +24,7 @@ def test_arima_model():
 
 	# ARMA
 	######
-	arma_mod = sm.tsa.ARMA(y, order=(2,2))
+	arma_mod = sm.tsa.ARMA(y, order=(4,2))
 	arma_res = arma_mod.fit(trend='nc', disp=-1)
 
 	print(arma_res.summary())
@@ -32,9 +32,19 @@ def test_arima_model():
 
 	# plot
 	fig, ax = plt.subplots(figsize=(10,8))
-	fig = arma_res.plot_predict(start='1999-06-30', end='2001-05-31', ax=ax)
+	fig = arma_res.plot_predict(start='1990-06-30', end='2001-05-31', ax=ax)
 	legend = ax.legend(loc='upper left')
 	fig.savefig('arma.png')
+
+	# predict
+	predict_arr = arma_res.predict(start='2000-06-30', end='2000-06-30')
+	print("=== Predict Array: ===")
+	print(predict_arr)
+
+	# forecast
+	forecast_arr, stderr, conf_int = arma_res.forecast(steps=20)
+	print("=== Forcast Array: ===")
+	print(forecast_arr)
 
 	# ARIMA
 	########
@@ -46,7 +56,7 @@ def test_arima_model():
 
 	# plot
 	fig, ax = plt.subplots(figsize=(10,8))
-	fig = arima_res.plot_predict(start='1999-06-30', end='2001-05-31', ax=ax)
+	fig = arima_res.plot_predict(start='1990-06-30', end='2001-05-31', ax=ax)
 	legend = ax.legend(loc='upper left')
 	fig.savefig('arima.png')
 
