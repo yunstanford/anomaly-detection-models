@@ -23,6 +23,7 @@ def test_arima_model():
 	y = pd.Series(y, index=dates)
 
 	# ARMA
+	######
 	arma_mod = sm.tsa.ARMA(y, order=(2,2))
 	arma_res = arma_mod.fit(trend='nc', disp=-1)
 
@@ -37,6 +38,17 @@ def test_arima_model():
 
 	# ARIMA
 	########
+	arima_mod = sm.tsa.ARIMA(y, order=(2,1,2))
+	arima_res = arima_mod.fit(trend='nc', disp=-1)
+
+	print(arima_res.summary())
+	print(y.tail())
+
+	# plot
+	fig, ax = plt.subplots(figsize=(10,8))
+	fig = arima_res.plot_predict(start='1999-06-30', end='2001-05-31', ax=ax)
+	legend = ax.legend(loc='upper left')
+	fig.savefig('arima.png')
 
 
 def main():
