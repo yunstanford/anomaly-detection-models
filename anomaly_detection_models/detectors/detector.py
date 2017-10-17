@@ -4,8 +4,8 @@ import statsmodels.api as sm
 from scipy.stats import t
 
 
-def detect_anoms_esd(time_series, k=0.49, alpha=0.05,
-                     frequency=3, strict=True):
+def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
+                         frequency=3, strict=True):
     """
     Detects anomalies in a time series using S-H-ESD.
 
@@ -18,6 +18,7 @@ def detect_anoms_esd(time_series, k=0.49, alpha=0.05,
 
     Returns:
         A list containing the anomalies (anoms) and decomposition components (stl).
+        Returns if can not find any anomaly.
 
     Note:
         Grubbs test allows one-sided tests (i.e., you can specify a minimum test or the maximum test) in addition
@@ -70,3 +71,26 @@ def detect_anoms_esd(time_series, k=0.49, alpha=0.05,
         data[max_r_index] = (mean * n - data[max_r_index])/(n - 1)
 
     return anoms_index[:num_anoms] if num_anoms > 0 else None
+
+
+def detect_anoms_arima_esd(time_series, k=0.49, alpha=0.05,
+                           strict=True):
+    """
+    Detects anomalies in a time series using ARIMA model and ESD tests.
+
+    Args:
+        time_series: Time series to perform anomaly detection on, np.array[int].
+        k: Maximum number of anomalies that ESD will detect as a percentage of the data.
+        alpha: The level of statistical significance with which to accept or reject anomalies.
+        strict: strictly apply ESD algorithm if TRUE.
+
+    Returns:
+        A list containing the anomalies (anoms) and decomposition components (stl).
+        Returns if can not find any anomaly.
+
+    Note:
+        Grubbs test allows one-sided tests (i.e., you can specify a minimum test or the maximum test) in addition
+        to two-sided tests (both the minimum and the maximum value are tested). The generalized ESD test is
+        restricted to two-sided tests.
+    """
+    pass
