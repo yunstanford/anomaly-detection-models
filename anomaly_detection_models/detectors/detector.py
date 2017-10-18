@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import statsmodels.api as sm
 from scipy.stats import t
 
@@ -35,6 +34,12 @@ def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
     # Remove the seasonal component and trend component, to get univariate variable
     uni_var = data.observed - data.trend - data.seasonal
 
+    # Hanle nan
+    m = np.nanmean(uni_var)
+    for i in range(len(uni_var)):
+        if np.isnan(uni_var[i]):
+            uni_var[i] = m
+
     expected_data = data.trend + data.seasonal
 
     # Maximum number of outliers that S-H-ESD can detect (e.g. 49% of data)
@@ -60,7 +65,12 @@ def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
         anoms_index[i] = max_r_index
 
         # Calcualate Critical Value
-        critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(a/(2*n),n-2),2)))
+        # critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(alpha/(2*n),n-2),2)))
+
+        p = 1 - alpha/(2*(n-(i+1)+1))
+        tpv = t.ppf(p, n-(i+1)-1)
+
+        critical_value = tpv*(n-(i+1))/np.sqrt((n-(i+1)-1+np.power(tpv,2))*(n-(i+1)+1))
 
         if max_r > critical_value:
             num_anoms = i + 1
@@ -174,7 +184,12 @@ def generalized_esd_test(var, k, alpha, strict=True):
         anoms_index[i] = max_r_index
 
         # Calcualate Critical Value
-        critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(a/(2*n),n-2),2)))
+        # critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(alpha/(2*n),n-2),2)))
+
+        p = 1 - alpha/(2*(n-(i+1)+1))
+        tpv = t.ppf(p, n-(i+1)-1)
+
+        critical_value = tpv*(n-(i+1))/np.sqrt((n-(i+1)-1+np.power(tpv,2))*(n-(i+1)+1))
 
         if max_r > critical_value:
             num_anoms = i + 1
