@@ -42,48 +42,7 @@ def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
 
     expected_data = data.trend + data.seasonal
 
-    # Maximum number of outliers that S-H-ESD can detect (e.g. 49% of data)
-    max_outliers = int(n*k)
-    anoms_index = [None] * max_outliers
-    num_anoms = 0
-
-    for i in range(max_outliers):
-
-        # mean and standard deviation
-        mean = np.nanmean(uni_var)
-        std = np.nanstd(uni_var)
-
-        # In Case, this series is constant, let's break
-        if std == 0:
-            break
-
-        residuals = np.abs((uni_var - mean)/std)
-
-        # Find residual with max z-values
-        max_r_index = np.argmax(residuals)
-        max_r = residuals[max_r_index]
-        anoms_index[i] = max_r_index
-
-        # Calcualate Critical Value
-        # critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(alpha/(2*n),n-2),2)))
-
-        p = 1 - alpha/(2*(n-(i+1)+1))
-        tpv = t.ppf(p, n-(i+1)-1)
-
-        critical_value = tpv*(n-(i+1))/np.sqrt((n-(i+1)-1+np.power(tpv,2))*(n-(i+1)+1))
-
-        if max_r > critical_value:
-            num_anoms = i + 1
-        elif not strict:
-            # Let's break if we don't strict apply esd.
-            break
-
-        # Do not delete current selected item from numpy array, it's very expensive.
-        # Let's input the new mean for next iteration, then this value should have no
-        # contribution to next iteration.
-        uni_var[max_r_index] = (mean * n - uni_var[max_r_index])/(n - 1)
-
-    return anoms_index[:num_anoms] if num_anoms > 0 else None
+    return generalized_esd_test(uni_var, k, alpha, strict)
 
 
 def detect_anoms_ar_esd(time_series, k=0.49, alpha=0.05,
