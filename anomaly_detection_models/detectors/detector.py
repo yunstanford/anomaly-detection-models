@@ -96,16 +96,26 @@ def detect_anoms_ar_esd(time_series, k=0.49, alpha=0.05,
         to two-sided tests (both the minimum and the maximum value are tested). The generalized ESD test is
         restricted to two-sided tests.
     """
-    pass
+    # Build ARIMA Model
+    N = len(time_series)
+    ar = sm.tsa.AR(time_series)
+    ar_model = ar.fit(trend='nc', disp=-1)
+    predicted_values = ar_model.predict(start=1, end=N)
+    uni_var = time_series - predicted_values
+
+    # Perform Generalized ESD test to find anomalies
+    return generalized_esd_test(uni_var, k, alpha, strict)
 
 
-def detect_anoms_arima_esd(time_series, k=0.49, alpha=0.05,
+def detect_anoms_arima_esd(time_series, pdp_tuple, k=0.49, alpha=0.05,
                            strict=True):
     """
     Detects anomalies in a time series using ARIMA model and ESD tests.
 
     Args:
         time_series: Time series to perform anomaly detection on, np.array[int].
+        pdp_tuple: The (p,d,q) order of the model for the number of AR parameters, differences,
+                     and MA parameters to use.
         k: Maximum number of anomalies that ESD will detect as a percentage of the data.
         alpha: The level of statistical significance with which to accept or reject anomalies.
         strict: strictly apply ESD algorithm if TRUE.
@@ -119,7 +129,16 @@ def detect_anoms_arima_esd(time_series, k=0.49, alpha=0.05,
         to two-sided tests (both the minimum and the maximum value are tested). The generalized ESD test is
         restricted to two-sided tests.
     """
-    pass
+
+    # Build ARIMA Model
+    N = len(time_series)
+    arima = sm.tsa.ARIMA(time_series, order=(2,1,2))
+    arima_model = arima.fit(trend='nc', disp=-1)
+    predicted_values = arima_model.predict(start=1, end=N)
+    uni_var = time_series - predicted_values
+
+    # Perform Generalized ESD test to find anomalies
+    return generalized_esd_test(uni_var, k, alpha, strict)
 
 
 def generalized_esd_test(var, k, alpha, strict=True):
@@ -132,4 +151,40 @@ def generalized_esd_test(var, k, alpha, strict=True):
         alpha: The level of statistical significance with which to accept or reject anomalies.
         strict: strictly apply ESD algorithm if TRUE.
     """
-    pass
+    n = len(var)
+    max_outliers = int(n*k)
+    anoms_index = [None] * max_outliers
+    num_anoms = 0
+
+    for i in range(max_outliers):
+
+        # mean and standard deviation
+        mean = np.nanmean(var)
+        std = np.nanstd(var)
+
+        # In Case, this series is constant, let's break
+        if std == 0:
+            break
+
+        residuals = np.abs((var - mean)/std)
+
+        # Find residual with max z-values
+        max_r_index = np.argmax(residuals)
+        max_r = residuals[max_r_index]
+        anoms_index[i] = max_r_index
+
+        # Calcualate Critical Value
+        critical_value = ((n-1)/np.sqrt(n))*np.sqrt(np.power(t.ppf(alpha/(2*n),n-2),2)/(n-2+np.power(t.ppf(a/(2*n),n-2),2)))
+
+        if max_r > critical_value:
+            num_anoms = i + 1
+        elif not strict:
+            # Let's break if we don't strict apply esd.
+            break
+
+        # Do not delete current selected item from numpy array, it's very expensive.
+        # Let's input the new mean for next iteration, then this value should have no
+        # contribution to next iteration.
+        var[max_r_index] = (mean * n - var[max_r_index])/(n - 1)
+
+    return anoms_index[:num_anoms] if num_anoms > 0 else None

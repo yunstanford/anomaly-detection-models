@@ -81,6 +81,8 @@ def test_arma_model_with_int_index():
 	print(arma_res.summary())
 
 	# plot
+	print(arma_res.predict(start=245, end=252))
+	print(y[245:])
 	fig, ax = plt.subplots(figsize=(10,8))
 	fig = arma_res.plot_predict(start=1, end=252, ax=ax)
 	legend = ax.legend(loc='upper left')
