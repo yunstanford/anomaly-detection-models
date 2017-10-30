@@ -9,8 +9,15 @@ def correlate_metrics(time_series_matrix, target_ts_index, correlation_level=0.9
         time_series_matrix: time_series metrics.
 		target_ts_index: index of target time series data.
 		correlation_level: correlation level.
-		
+
         Perf issues ?
+	"""
+	pass
+
+
+def auto_correlation(time_series, correlation_level=0.9):
+	"""
+	Comparison of a time series data in different time.
 	"""
 	pass
 
