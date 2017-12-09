@@ -11,6 +11,8 @@ install_requires = [
     "numpy",
     "statsmodels",
     "matplotlib",
+    "tensorflow",
+    "keras",
 ]
 
 tests_require = []
