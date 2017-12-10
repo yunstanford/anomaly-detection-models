@@ -26,6 +26,10 @@ def load_data(ts_series, seq_len, ratio=0.9):
     x_test = train_set[:, :-1]
     y_test = train_set[:, -1]
 
+    # reshap input to be [samples, time step, features]
+    x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
+    y_train = np.reshape(y_train, (y_train.shape[0], 1, y_train.shape[1]))
+
     return (x_train, y_train, x_test, y_test)
 
 
