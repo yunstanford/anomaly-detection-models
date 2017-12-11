@@ -67,8 +67,20 @@ def fetch_remote(graphite_host, graphite_port, metric):
     pass
 
 
-def predict():
-    pass
+def predict_single(model, ts_data):
+    return model.predict(ts_data)
+
+
+# TODO...
+def predict_multiple(model, data, window_size):
+    curr_frame = data[0]
+    predicted = []
+    for i in range(len(data)):
+        predicted.append(model.predict(curr_frame[newaxis,:,:])[0,0])
+        curr_frame = curr_frame[1:]
+        curr_frame = np.insert(curr_frame, [window_size-1], predicted[-1], axis=0)
+    return predicted
+
 
 
 def plot_results(true_data, predict_data):
