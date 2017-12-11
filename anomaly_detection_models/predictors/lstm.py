@@ -5,6 +5,7 @@ from keras.models import Sequential
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import os
+import aiohttp
 
 
 def load_data(ts_series, seq_len, ratio=0.9):
@@ -63,8 +64,17 @@ def normalize(dataset):
     return dataset
 
 
-def fetch_remote(graphite_host, graphite_port, metric):
-    pass
+def fetch_remote(graphite_host, graphite_port, metric, frm):
+    url = "http://{host}:{port}/render?target={metric}&frm={frm}&format=json".format(
+            host=graphite_host,
+            port=graphite_port,
+            metric=metric,
+            frm=frm,
+        )
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.json()
 
 
 def predict_single(model, ts_data):
