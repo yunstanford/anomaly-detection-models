@@ -1,14 +1,18 @@
 import numpy as np
-from keras.layers.core import Dense, Activation, Dropout
+from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import Imputer
 from sklearn.metrics import mean_squared_error
+from numpy import newaxis
 import os
 import aiohttp
+import asyncio
+# import matplotlib.pyplot as plt
 
 
-def load_data(ts_series, seq_len, ratio=0.9):
+def load_data(ts_series, seq_len, batch_size=1, ratio=0.9):
     sequence_length = seq_len + 1
     total_len = len(ts_series)
     ts_seqs = []
@@ -22,10 +26,10 @@ def load_data(ts_series, seq_len, ratio=0.9):
     np.random.shuffle(train_set)
 
     x_train = train_set[:, :-1]
-    y_train = train_set[:, -1]
+    y_train = train_set[:, :-1]
 
-    x_test = train_set[:, :-1]
-    y_test = train_set[:, -1]
+    x_test = train_set[N:, :-1]
+    y_test = train_set[N:, -1]
 
     # reshap input to be [samples, time step, features]
     x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
@@ -34,7 +38,7 @@ def load_data(ts_series, seq_len, ratio=0.9):
     return (x_train, y_train, x_test, y_test)
 
 
-def build_model(layers, seq_len=1, dropout=0.2, activation="linear", loss="mse", optimizer="rmsprop"):
+def build_model(layers, seq_len=1, batch_size=1, dropout=0.2, activation="linear", loss="mse", optimizer="rmsprop"):
     model = Sequential()
 
     # First Layer LSTM
@@ -48,6 +52,9 @@ def build_model(layers, seq_len=1, dropout=0.2, activation="linear", loss="mse",
         LSTM(layers[1], return_sequences=False)
     )
     model.add(Dropout(dropout))
+
+    # Flatten
+    # model.add(Flatten())
 
     # Feeds to fully connected normal layer
     model.add(Dense(1, activation=activation))
@@ -64,7 +71,7 @@ def normalize(dataset):
     return dataset
 
 
-def fetch_remote(graphite_host, graphite_port, metric, frm):
+async def fetch_remote(graphite_host, graphite_port, metric, frm):
     url = "http://{host}:{port}/render?target={metric}&frm={frm}&format=json".format(
             host=graphite_host,
             port=graphite_port,
@@ -77,6 +84,18 @@ def fetch_remote(graphite_host, graphite_port, metric, frm):
             return await resp.json()
 
 
+async def get_time_series(host, port, metric, frm):
+    metric_resps = await fetch_remote(host, port, metric, frm)
+    metric_data = metric_resps[0]["datapoints"]
+    value_list = []
+    ts_list = []
+    for v, t in metric_data:
+        if v:
+            ts_list.append(t)
+            value_list.append(v)
+    return np.array(value_list, dtype=np.float), np.array(ts_list, dtype=np.int)
+
+
 def predict_single(model, ts_data):
     return model.predict(ts_data)
 
@@ -86,12 +105,50 @@ def predict_multiple(model, data, window_size):
     curr_frame = data[0]
     predicted = []
     for i in range(len(data)):
-        predicted.append(model.predict(curr_frame[newaxis,:,:])[0,0])
+        predicted.append(model.predict(curr_frame[newaxis,:,:])[0])
         curr_frame = curr_frame[1:]
         curr_frame = np.insert(curr_frame, [window_size-1], predicted[-1], axis=0)
     return predicted
 
 
+# def plot_results(predicted_data, true_data):
+#     fig = plt.figure(facecolor='white')
+#     ax = fig.add_subplot(111)
+#     ax.plot(true_data, label='True Data')
+#     plt.plot(predicted_data, label='Prediction')
+#     plt.legend()
+#     plt.show()
 
-def plot_results(true_data, predict_data):
-    pass
+
+loop = asyncio.get_event_loop()
+
+
+def main():
+    # Params
+    epochs  = 1
+    seq_len = 50
+    batch_size = 1
+
+    # Fetch time series
+    vals, ts = loop.run_until_complete(
+        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-7d")
+    )
+    X_train, y_train, X_test, y_test = load_data(vals, seq_len=seq_len, batch_size=batch_size)
+
+    # Build and Compile Model
+    model = build_model([50, 100], seq_len=seq_len)
+    # Training
+    model.fit(
+        X_train,
+        y_train,
+        batch_size=batch_size,
+        epochs=epochs,
+        validation_split=0.05
+    )
+
+    # predict full
+    predicted = predict_multiple(model, [vals], 10)
+    print(predicted)
+
+if __name__ == '__main__':
+    main()

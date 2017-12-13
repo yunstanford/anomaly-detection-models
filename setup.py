@@ -15,6 +15,7 @@ install_requires = [
     "keras",
     "sklearn",
     "aiohttp",
+    "matplotlib",
 ]
 
 tests_require = []
