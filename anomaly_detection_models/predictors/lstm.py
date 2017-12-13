@@ -32,8 +32,8 @@ def load_data(ts_series, seq_len, batch_size=1, ratio=0.9):
     y_test = train_set[N:, -1]
 
     # reshap input to be [samples, time step, features]
-    x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
-    y_train = np.reshape(y_train, (y_train.shape[0], 1, y_train.shape[1]))
+    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+    y_train = np.reshape(y_train, (y_train.shape[0], y_train.shape[1], 1))
 
     return (x_train, y_train, x_test, y_test)
 
@@ -43,13 +43,13 @@ def build_model(layers, seq_len=1, batch_size=1, dropout=0.2, activation="linear
 
     # First Layer LSTM
     model.add(
-        LSTM(layers[0], input_shape=(1, seq_len), return_sequences=True)
+        LSTM(layers[0], batch_input_shape=(batch_size, seq_len, 1), stateful=True, return_sequences=True)
     )
     model.add(Dropout(dropout))
 
     # Second Layer LSTM
     model.add(
-        LSTM(layers[1], return_sequences=False)
+        LSTM(layers[1], batch_input_shape=(batch_size, seq_len, 1), stateful=True, return_sequences=False)
     )
     model.add(Dropout(dropout))
 
@@ -133,10 +133,12 @@ def main():
     vals, ts = loop.run_until_complete(
         get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-7d")
     )
+    vals = normalize(vals.reshape(-1, 1))
+    print(vals)
     X_train, y_train, X_test, y_test = load_data(vals, seq_len=seq_len, batch_size=batch_size)
 
     # Build and Compile Model
-    model = build_model([50, 100], seq_len=seq_len)
+    model = build_model([50, 50], batch_size=batch_size, seq_len=seq_len)
     # Training
     model.fit(
         X_train,
