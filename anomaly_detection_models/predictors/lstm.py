@@ -95,7 +95,7 @@ async def get_time_series(host, port, metric, frm):
 
 
 def predict_single(model, ts_data):
-    return model.predict(ts_data)
+    return model.predict(np.reshape([ts_data], (1, len(ts_data), 1)))
 
 
 # TODO...
@@ -125,7 +125,7 @@ def main():
     # Params
     epochs  = 1
     seq_len = 50
-    batch_size = 1
+    batch_size = 250
 
     # Fetch time series
     vals, ts = loop.run_until_complete(
@@ -146,13 +146,17 @@ def main():
     model.fit(
         X_train,
         y_train,
-        # batch_size=batch_size,
+        batch_size=batch_size,
         epochs=epochs,
         validation_split=0.05
     )
 
     # predict full
-    predicted = predict_multiple(model, [vals], 10)
+    # predicted = predict_multiple(model, [vals], 10)
+
+    # predict next data point
+    print(vals[-seq_len:])
+    predicted = predict_single(model, vals[-seq_len:])
     print(predicted)
 
 if __name__ == '__main__':
