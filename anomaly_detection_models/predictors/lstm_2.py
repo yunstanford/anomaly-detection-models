@@ -25,7 +25,7 @@ def load_data(ts_series, seq_len, batch_size=1, ratio=0.9):
     # Let's shuffle training set...
     np.random.shuffle(train_set)
     x_train = train_set[:N, :-1]
-    y_train = train_set[:N, :-1]
+    y_train = train_set[:N, -1]
 
     x_test = train_set[N:, :-1]
     y_test = train_set[N:, -1]
@@ -33,6 +33,7 @@ def load_data(ts_series, seq_len, batch_size=1, ratio=0.9):
     # reshap input to be [samples, time step, features]
     x_train = np.reshape(x_train, (x_train.shape[0], 1, x_train.shape[1]))
     y_train = np.reshape(y_train, (y_train.shape[0], 1, y_train.shape[1]))
+
     return (x_train, y_train, x_test, y_test)
 
 
@@ -41,15 +42,15 @@ def build_model(neuron=10, seq_len=1, dropout=0.2, activation="linear", loss="ms
 
     # First Layer LSTM
     model.add(
-        LSTM(neuron, input_shape=(1, seq_len), return_sequences=False)
+        LSTM(neuron, input_shape=(1, seq_len), return_sequences=True)
     )
     model.add(Dropout(dropout))
 
-    # # Second Layer LSTM
-    # model.add(
-    #     LSTM(neuron, return_sequences=False)
-    # )
-    # model.add(Dropout(dropout))
+    # Second Layer LSTM
+    model.add(
+        LSTM(neuron, return_sequences=False)
+    )
+    model.add(Dropout(dropout))
 
     # # Flatten
     # model.add(Flatten())
