@@ -9,7 +9,12 @@ from numpy import newaxis
 import os
 import aiohttp
 import asyncio
-# import matplotlib.pyplot as plt
+import copy
+
+# reslove import issues in macos
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 def load_data(ts_series, seq_len, batch_size=1, ratio=0.9):
@@ -109,13 +114,14 @@ def predict_multiple(model, ts_data, predict_steps=1):
         ts_data = ts_data[1:]
     return predict_vals
 
-# def plot_results(predicted_data, true_data):
-#     fig = plt.figure(facecolor='white')
-#     ax = fig.add_subplot(111)
-#     ax.plot(true_data, label='True Data')
-#     plt.plot(predicted_data, label='Prediction')
-#     plt.legend()
-#     plt.show()
+def plot_results(predicted_data, true_data):
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    plt.plot(true_data, label='True Data')
+    plt.plot(predicted_data, label='Prediction')
+    plt.legend()
+    plt.show()
+    fig.savefig('lstm.png')
 
 
 loop = asyncio.get_event_loop()
@@ -129,9 +135,10 @@ def main():
 
     # Fetch time series
     vals, ts = loop.run_until_complete(
-        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-7d")
+        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-4d")
     )
 
+    original_vals = copy.deepcopy(vals)
     # Normalize Data
     # vals = normalize(vals.reshape(-1, 1))
     print(vals)
@@ -163,6 +170,17 @@ def main():
     # predict multiple vals
     predict_vals = predict_multiple(model, vals[-seq_len:], predict_steps=20)
     print(predict_vals)
+
+    # plot results
+    # plot_results(predict_vals, original_vals)
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    plt.plot(ts, original_vals, label='True Data')
+    # plt.plot(predict_vals, label='Prediction')
+    plt.legend()
+    plt.show()
+    fig.savefig('lstm.png')
+
 
 if __name__ == '__main__':
     main()
