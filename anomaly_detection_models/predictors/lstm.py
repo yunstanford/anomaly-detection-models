@@ -96,19 +96,18 @@ async def get_time_series(host, port, metric, frm):
 
 
 def predict_single(model, ts_data):
-    return model.predict(np.reshape([ts_data], (1, len(ts_data), 1)))
+    return model.predict(np.reshape([ts_data], (1, len(ts_data), 1)))[0,0]
 
 
 # TODO...
-def predict_multiple(model, data, window_size):
-    curr_frame = data[0]
-    predicted = []
-    for i in range(len(data)):
-        predicted.append(model.predict(curr_frame[newaxis,:,:])[0])
-        curr_frame = curr_frame[1:]
-        curr_frame = np.insert(curr_frame, [window_size-1], predicted[-1], axis=0)
-    return predicted
-
+def predict_multiple(model, ts_data, predict_steps=1):
+    predict_vals = []
+    for i in range(predict_steps):
+        val = predict_single(model, ts_data)
+        predict_vals.append(val)
+        ts_data = np.insert(ts_data, len(ts_data), val)
+        ts_data = ts_data[1:]
+    return predict_vals
 
 # def plot_results(predicted_data, true_data):
 #     fig = plt.figure(facecolor='white')
@@ -156,9 +155,14 @@ def main():
     # predicted = predict_multiple(model, [vals], 10)
 
     # predict next data point
+    # predict a single value
     print(vals[-seq_len:])
     predicted = predict_single(model, vals[-seq_len:])
     print(predicted)
+
+    # predict multiple vals
+    predict_vals = predict_multiple(model, vals[-seq_len:], predict_steps=20)
+    print(predict_vals)
 
 if __name__ == '__main__':
     main()
