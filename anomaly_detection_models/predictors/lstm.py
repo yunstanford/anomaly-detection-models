@@ -135,7 +135,7 @@ def main():
 
     # Fetch time series
     vals, ts = loop.run_until_complete(
-        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-4d")
+        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.metrics.production.pre.*.*.rum.school-schoolsearchpage.domready.desktop.turnstile.in)", "-8d")
     )
 
     original_vals = copy.deepcopy(vals)
@@ -172,14 +172,7 @@ def main():
     print(predict_vals)
 
     # plot results
-    # plot_results(predict_vals, original_vals)
-    fig = plt.figure(facecolor='white')
-    ax = fig.add_subplot(111)
-    plt.plot(ts, original_vals, label='True Data')
-    # plt.plot(predict_vals, label='Prediction')
-    plt.legend()
-    plt.show()
-    fig.savefig('lstm.png')
+    plot_results(predict_vals, original_vals)
 
 
 if __name__ == '__main__':
