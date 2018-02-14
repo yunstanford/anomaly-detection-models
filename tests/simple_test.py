@@ -2,6 +2,36 @@ from anomaly_detection_models.detectors.detector import detect_anoms_s_h_esd, de
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.tsa.arima_process import arma_generate_sample
+import asyncio
+import aiohttp
+
+
+loop = asyncio.get_event_loop()
+
+
+async def fetch_remote(graphite_host, graphite_port, metric, frm):
+    url = "http://{host}:{port}/render?target={metric}&frm={frm}&format=json".format(
+            host=graphite_host,
+            port=graphite_port,
+            metric=metric,
+            frm=frm,
+        )
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.json()
+
+
+async def get_time_series(host, port, metric, frm):
+    metric_resps = await fetch_remote(host, port, metric, frm)
+    metric_data = metric_resps[0]["datapoints"]
+    value_list = []
+    ts_list = []
+    for v, t in metric_data:
+        if v:
+            ts_list.append(t)
+            value_list.append(v)
+    return np.array(value_list, dtype=np.float), np.array(ts_list, dtype=np.int)
 
 
 def test_s_h_esd_simple():
@@ -21,7 +51,7 @@ def test_s_h_esd_simple():
 
 	anom_indexes = [100, 200]
 	for i in anom_indexes:
-		y[i] = y[i] + 3
+		y[i] = y[i] + 5
 
 	anomalies = detect_anoms_s_h_esd(y, alpha=0.025)
 	print("Expected Anomalies: {}".format(str(anom_indexes)))
@@ -53,12 +83,26 @@ def test_arima_esd_simple():
 	print("Acutally Found: {}".format(str(anomalies)))
 
 
+def test_s_h_esd_remote():
+	# Fetch time series
+    vals, ts = loop.run_until_complete(
+        get_time_series("graphite.del.zillow.local", 80, "sumSeries(zdc.trends.production.pre.*.rum.homedetails-forsale.contactformrender.mobile.turnstile.in)", "-4d")
+    )
+    anomalies = detect_anoms_s_h_esd(vals, alpha=0.025)
+
+    print("Acutally Found: {}".format(str([ts[i] for i in anomalies])))
+
+
+
 def main():
 	print("===== S-H-ESD =====")
 	test_s_h_esd_simple()
 
 	print("===== ARIMA =====")
 	test_arima_esd_simple()
+
+	print("===== remote =====")
+	test_s_h_esd_remote()
 
 
 if __name__ == '__main__':
