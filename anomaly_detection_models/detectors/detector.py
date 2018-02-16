@@ -4,6 +4,7 @@ from scipy.stats import t
 
 
 def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
+                         one_tail=True, upper_tail=True,
                          frequency=3, strict=True):
     """
     Detects anomalies in a time series using S-H-ESD.
@@ -12,6 +13,9 @@ def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
         time_series: Time series to perform anomaly detection on, np.array[int].
         k: Maximum number of anomalies that S-H-ESD will detect as a percentage of the data.
         alpha: The level of statistical significance with which to accept or reject anomalies.
+        one_tail: If TRUE only positive or negative going anomalies are detected depending on if upper_tail is TRUE or FALSE.
+        upper_tail: If TRUE and one_tail is also TRUE, detect only positive going (right-tailed) anomalies.
+                    If FALSE and one_tail is TRUE, only detect negative (left-tailed) anomalies.
         frequency: Defines the number of observations in a single period, and used during seasonal decomposition.
         strict: strictly apply S-H-ESD algorithm if TRUE.
 
@@ -42,10 +46,11 @@ def detect_anoms_s_h_esd(time_series, k=0.49, alpha=0.05,
 
     expected_data = data.trend + data.seasonal
 
-    return generalized_esd_test(uni_var, k, alpha, strict)
+    return generalized_esd_test(uni_var, k, alpha, one_tail, upper_tail, strict)
 
 
 def detect_anoms_ar_esd(time_series, k=0.49, alpha=0.05,
+                        one_tail=True, upper_tail=True,
                         strict=True):
     """
     Detects anomalies in a time series using AR model and ESD tests.
@@ -54,6 +59,9 @@ def detect_anoms_ar_esd(time_series, k=0.49, alpha=0.05,
         time_series: Time series to perform anomaly detection on, np.array[int].
         k: Maximum number of anomalies that ESD will detect as a percentage of the data.
         alpha: The level of statistical significance with which to accept or reject anomalies.
+        one_tail: If TRUE only positive or negative going anomalies are detected depending on if upper_tail is TRUE or FALSE.
+        upper_tail: If TRUE and one_tail is also TRUE, detect only positive going (right-tailed) anomalies.
+                    If FALSE and one_tail is TRUE, only detect negative (left-tailed) anomalies.
         strict: strictly apply ESD algorithm if TRUE.
 
     Returns:
@@ -73,10 +81,11 @@ def detect_anoms_ar_esd(time_series, k=0.49, alpha=0.05,
     uni_var = time_series - predicted_values
 
     # Perform Generalized ESD test to find anomalies
-    return generalized_esd_test(uni_var, k, alpha, strict)
+    return generalized_esd_test(uni_var, k, alpha, one_tail, upper_tail, strict)
 
 
 def detect_anoms_arima_esd(time_series, pdp_tuple, k=0.49, alpha=0.05,
+                           one_tail=True, upper_tail=True,
                            strict=True):
     """
     Detects anomalies in a time series using ARIMA model and ESD tests.
@@ -87,6 +96,9 @@ def detect_anoms_arima_esd(time_series, pdp_tuple, k=0.49, alpha=0.05,
                      and MA parameters to use.
         k: Maximum number of anomalies that ESD will detect as a percentage of the data.
         alpha: The level of statistical significance with which to accept or reject anomalies.
+        one_tail: If TRUE only positive or negative going anomalies are detected depending on if upper_tail is TRUE or FALSE.
+        upper_tail: If TRUE and one_tail is also TRUE, detect only positive going (right-tailed) anomalies.
+                    If FALSE and one_tail is TRUE, only detect negative (left-tailed) anomalies.
         strict: strictly apply ESD algorithm if TRUE.
 
     Returns:
@@ -107,10 +119,10 @@ def detect_anoms_arima_esd(time_series, pdp_tuple, k=0.49, alpha=0.05,
     uni_var = time_series - predicted_values
 
     # Perform Generalized ESD test to find anomalies
-    return generalized_esd_test(uni_var, k, alpha, strict)
+    return generalized_esd_test(uni_var, k, alpha, one_tail, upper_tail, strict)
 
 
-def generalized_esd_test(var, k, alpha, strict=True):
+def generalized_esd_test(var, k, alpha, one_tail=True, upper_tail=True, strict=True):
     """
     This is an implementation of generalized ESD test.
 
@@ -118,6 +130,9 @@ def generalized_esd_test(var, k, alpha, strict=True):
         var: Vars to perform generalized esd test.
         k: Maximum number of anomalies that ESD will detect as a percentage of the data.
         alpha: The level of statistical significance with which to accept or reject anomalies.
+        one_tail: If TRUE only positive or negative going anomalies are detected depending on if upper_tail is TRUE or FALSE.
+        upper_tail: If TRUE and one_tail is also TRUE, detect only positive going (right-tailed) anomalies.
+                    If FALSE and one_tail is TRUE, only detect negative (left-tailed) anomalies.
         strict: strictly apply ESD algorithm if TRUE.
     """
     n = len(var)
@@ -135,7 +150,13 @@ def generalized_esd_test(var, k, alpha, strict=True):
         if std == 0:
             break
 
-        residuals = np.abs((var - mean)/std)
+        if one_tail:
+            if upper_tail:
+                residuals = (var - mean)/std
+            else:
+                residuals = (mean - var)/std
+        else:
+            residuals = np.abs((var - mean)/std)
 
         # Find residual with max z-values
         max_r_index = np.argmax(residuals)
